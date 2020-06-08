@@ -1,7 +1,7 @@
-import tempfile
-import unittest
 import os
 import signal
+import tempfile
+import unittest
 
 from recoverable import RecoverableFunction, recoverable
 
@@ -56,7 +56,7 @@ class RecoverableTestCase(unittest.TestCase):
         rd_fd, wr_fd = os.pipe()
 
         @recoverable(self.dirpath)
-        def block(s: bytes) -> str:
+        def block(s: bytes):
             os.close(rd_fd)
             os.write(wr_fd, b'1')
             os.close(wr_fd)
@@ -81,7 +81,7 @@ class RecoverableTestCase(unittest.TestCase):
         rd_fd, wr_fd = os.pipe()
 
         @recoverable(self.dirpath)
-        def block(s: bytes) -> str:
+        def block(s: bytes):
             os.close(rd_fd)
             os.write(wr_fd, b'1')
             os.close(wr_fd)
@@ -127,7 +127,7 @@ class RecoverableTestCase(unittest.TestCase):
             f.write('input')
 
         @recoverable(self.dirpath)
-        def success(s: bytes) -> str:
+        def success(s: bytes):
             self.assertEqual(s, b'input')
         success.recover_from_filename('constant')
         self.assertEqual(0, len(os.listdir(self.dirpath)))
