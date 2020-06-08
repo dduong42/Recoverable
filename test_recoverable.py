@@ -121,6 +121,29 @@ class RecoverableTestCase(unittest.TestCase):
             pass
         self.assert_content_unique_file(b'hello')
 
+    def test_recovering_success(self):
+        path = os.path.join(self.dirpath, 'constant')
+        with open(path, 'w') as f:
+            f.write('input')
+
+        @recoverable(self.dirpath)
+        def success(s: bytes) -> str:
+            self.assertEqual(s, b'input')
+        success.recover_from_filename('constant')
+        self.assertEqual(0, len(os.listdir(self.dirpath)))
+
+    def test_recovering_failure_keeps_file(self):
+        path = os.path.join(self.dirpath, 'constant')
+        with open(path, 'w') as f:
+            f.write('input failure')
+
+        @recoverable(self.dirpath)
+        def failure(s: bytes) -> str:
+            raise ValueError
+        with self.assertRaises(ValueError):
+            failure.recover_from_filename('constant')
+        self.assert_content_unique_file(b'input failure')
+
     def test_recovering_locked_file_should_fail(self):
         path = os.path.join(self.dirpath, 'constant')
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXLOCK)
