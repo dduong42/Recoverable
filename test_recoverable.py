@@ -6,11 +6,6 @@ import signal
 from recoverable import RecoverableFunction, recoverable
 
 
-class RFConstantFilename(RecoverableFunction):
-    def generate_filename(self) -> str:
-        return 'constant'
-
-
 class RecoverableTestCase(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -103,6 +98,25 @@ class RecoverableTestCase(unittest.TestCase):
 
             os.kill(pid, signal.SIGKILL)
             os.wait()
+
+    def test_filename_collision(self):
+        path = os.path.join(self.dirpath, 'constant')
+        with open(path, 'w') as f:
+            f.write('hello')
+
+        class RFConstantFilename(RecoverableFunction):
+            def generate_filename(self) -> str:
+                return 'constant'
+
+        def failure(s: bytes) -> str:
+            raise ValueError
+
+        function = RFConstantFilename(self.dirpath, failure)
+        try:
+            function(b'blabla')
+        except ValueError:
+            pass
+        self.assert_content_unique_file(b'hello')
 
     def tearDown(self):
         self.tmpdir.cleanup()

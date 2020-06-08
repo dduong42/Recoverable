@@ -22,7 +22,7 @@ class RecoverableFunction:
             filename = self.generate_filename()
             path = os.path.join(self.directory, filename)
             try:
-                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXLOCK)
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_EXLOCK)
             except Exception:
                 continue
 
