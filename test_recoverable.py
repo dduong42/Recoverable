@@ -11,6 +11,9 @@ class RecoverableTestCase(unittest.TestCase):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.dirpath = self.tmpdir.name
 
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
     def test_return_right_value(self):
         @recoverable(self.dirpath)
         def success(s: bytes) -> str:
@@ -118,5 +121,13 @@ class RecoverableTestCase(unittest.TestCase):
             pass
         self.assert_content_unique_file(b'hello')
 
-    def tearDown(self):
-        self.tmpdir.cleanup()
+    def test_recovering_locked_file_should_fail(self):
+        path = os.path.join(self.dirpath, 'constant')
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXLOCK)
+
+        @recoverable(self.dirpath)
+        def success(s: bytes) -> str:
+            return 'success'
+
+        with self.assertRaises(BlockingIOError):
+            success.recover_from_filename('constant')

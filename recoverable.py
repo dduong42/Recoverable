@@ -47,7 +47,7 @@ class RecoverableFunction:
 
     def recover_from_filename(self, filename: str):
         path = os.path.join(self.directory, filename)
-        fd = os.open(path, os.O_RDONLY | os.O_EXLOCK)
+        fd = os.open(path, os.O_RDONLY | os.O_EXLOCK | os.O_NONBLOCK)
         file = os.fdopen(fd, 'rb')
         content = file.read()
         try:
