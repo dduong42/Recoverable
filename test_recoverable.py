@@ -55,17 +55,54 @@ class RecoverableTestCase(unittest.TestCase):
         self.assert_content_unique_file(b'failure')
 
     def test_content_saved_when_process_killed(self):
+        rd_fd, wr_fd = os.pipe()
+
         @recoverable(self.dirpath)
         def block(s: bytes) -> str:
+            os.close(rd_fd)
+            os.write(wr_fd, b'1')
+            os.close(wr_fd)
             input()
 
-        fd = os.fork()
-        if fd == 0:
+        pid = os.fork()
+        if pid == 0:
             block(b'blocked')
         else:
-            os.kill(fd, signal.SIGKILL)
+            os.close(wr_fd)
+            os.read(rd_fd, 1)
+            os.close(rd_fd)
+            os.kill(pid, signal.SIGKILL)
             os.wait()
             self.assert_content_unique_file(b'blocked')
+
+    def get_first_file_path(self):
+        listd = os.listdir(self.dirpath)
+        return os.path.join(self.dirpath, listd[0])
+
+    def test_file_is_locked(self):
+        rd_fd, wr_fd = os.pipe()
+
+        @recoverable(self.dirpath)
+        def block(s: bytes) -> str:
+            os.close(rd_fd)
+            os.write(wr_fd, b'1')
+            os.close(wr_fd)
+            input()
+
+        pid = os.fork()
+        if pid == 0:
+            block(b'blocked')
+        else:
+            os.close(wr_fd)
+            os.read(rd_fd, 1)
+            os.close(rd_fd)
+
+            path = self.get_first_file_path()
+            with self.assertRaises(BlockingIOError):
+                os.open(path, os.O_RDONLY | os.O_EXLOCK | os.O_NONBLOCK)
+
+            os.kill(pid, signal.SIGKILL)
+            os.wait()
 
     def tearDown(self):
         self.tmpdir.cleanup()
